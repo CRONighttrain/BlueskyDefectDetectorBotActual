@@ -112,33 +112,34 @@ def createPost(index):
 
     try:
         data = get_posts(feedList)
-    except AttributeError:
-        print(feedList)
-    #Length of feed
-    dataLen: int = len(data.feed)
-    #If feed has posts
-    if len(data.feed) > 0:
-        #Get a random post
-        randomPostNum: int = random.randint(0, dataLen - 1)
-        randPost = data.feed.pop(randomPostNum).post
-        #find another post if we've responded to that one before
-        while is_in_posts_replied_to(randPost.uri):
+        # Length of feed
+        dataLen: int = len(data.feed)
+        # If feed has posts
+        if len(data.feed) > 0:
+            # Get a random post
             randomPostNum: int = random.randint(0, dataLen - 1)
             randPost = data.feed.pop(randomPostNum).post
-        #add post id to list of posts that we've replied to
-        add_to_posts_replied_to(randPost.uri)
-        #Get post text
-        randPostText = randPost.record.text
-        #Create a reference to the post
-        parent = models.create_strong_ref(randPost)
-        #Reply using that reference
-        client.send_post(
-            text=replyTextCreator(randPostText),
-            reply_to=models.AppBskyFeedPost.ReplyRef(parent=parent, root=parent)
-        )
-        #update the times replied
-        update_times_replied()
-    if(index > 0):
-        createPost(index - 1)
+            # find another post if we've responded to that one before
+            while is_in_posts_replied_to(randPost.uri):
+                randomPostNum: int = random.randint(0, dataLen - 1)
+                randPost = data.feed.pop(randomPostNum).post
+            # add post id to list of posts that we've replied to
+            add_to_posts_replied_to(randPost.uri)
+            # Get post text
+            randPostText = randPost.record.text
+            # Create a reference to the post
+            parent = models.create_strong_ref(randPost)
+            # Reply using that reference
+            client.send_post(
+                text=replyTextCreator(randPostText),
+                reply_to=models.AppBskyFeedPost.ReplyRef(parent=parent, root=parent)
+            )
+            # update the times replied
+            update_times_replied()
+        if (index > 0):
+            createPost(index - 1)
+    except AttributeError:
+        print(feedList)
+
 
 createPost(5)
