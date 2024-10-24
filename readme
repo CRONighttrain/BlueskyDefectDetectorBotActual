@@ -1,0 +1,8 @@
+You're gonna need to create a file called ".env"
+and put this in there:
+
+BSKYUSERNAME = username
+PASSWORD = password
+
+replacing username with your bluesky username (ex: postdefectdetector.bsky.social)
+and password with your bluesky password.
