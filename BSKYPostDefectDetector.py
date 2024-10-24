@@ -92,15 +92,24 @@ def replyTextCreator(postText: str) -> str:
     return output
 
 def get_posts(feedList):
-    feedUri = feedList[random.randint(0, len(feedList) -1)].uri
     try:
-        data = client.app.bsky.feed.get_feed({
-            'feed': feedUri,
-            'limit': 30,
-        }, headers={'Accept-Language': ""})
-        return data
-    except atproto_client.exceptions.NetworkError:
-        return get_posts(feedUri)
+        #get the URI of the random feed
+        feedUri = feedList[random.randint(0, len(feedList) -1)].uri
+        #recursively try to get posts from that URI
+        try:
+            data = client.app.bsky.feed.get_feed({
+                'feed': feedUri,
+                'limit': 30,
+            }, headers={'Accept-Language': ""})
+            return data
+        except atproto_client.exceptions.NetworkError:
+            return get_posts(feedUri)
+    except AttributeError:
+        print("No URI")
+
+#grabs a random post
+def grab_random_post(data):
+    return data[random.randint(0, len(data) - 1)]
 
 #Setup Client
 client: Client = Client()
@@ -110,36 +119,29 @@ def createPost(index):
     #Get random feed
     feedList = client.app.bsky.unspecced.get_popular_feed_generators().feeds
 
-    try:
-        data = get_posts(feedList)
-        # Length of feed
-        dataLen: int = len(data.feed)
-        # If feed has posts
-        if len(data.feed) > 0:
-            # Get a random post
-            randomPostNum: int = random.randint(0, dataLen - 1)
-            randPost = data.feed.pop(randomPostNum).post
-            # find another post if we've responded to that one before
-            while is_in_posts_replied_to(randPost.uri):
-                randomPostNum: int = random.randint(0, dataLen - 1)
-                randPost = data.feed.pop(randomPostNum).post
-            # add post id to list of posts that we've replied to
-            add_to_posts_replied_to(randPost.uri)
-            # Get post text
-            randPostText = randPost.record.text
-            # Create a reference to the post
-            parent = models.create_strong_ref(randPost)
-            # Reply using that reference
-            client.send_post(
-                text=replyTextCreator(randPostText),
-                reply_to=models.AppBskyFeedPost.ReplyRef(parent=parent, root=parent)
-            )
-            # update the times replied
-            update_times_replied()
-        if (index > 0):
-            createPost(index - 1)
-    except AttributeError:
-        print(feedList)
+
+    data = get_posts(feedList).feed
+    # If feed has posts
+    if len(data) > 0:
+        # Get a random post
+        randPost = grab_random_post(data).post
+        while is_in_posts_replied_to(randPost.uri):
+            randPost = grab_random_post(data).post
+        # add post id to list of posts that we've replied to
+        add_to_posts_replied_to(randPost.uri)
+        # Get post text
+        randPostText = randPost.record.text
+        # Create a reference to the post
+        parent = models.create_strong_ref(randPost)
+        # Reply using that reference
+        client.send_post(
+            text=replyTextCreator(randPostText),
+            reply_to=models.AppBskyFeedPost.ReplyRef(parent=parent, root=parent)
+        )
+        # update the times replied
+        update_times_replied()
+    if (index > 0):
+        createPost(index - 1)
 
 
 createPost(5)
